@@ -1,6 +1,6 @@
 
 /**
- *	creates non-modal dialog boxes and displays them in the middle of the viewport
+ *	Creates non-modal dialog boxes and displays them in the middle of the viewport
  *	@author Garrett Sens, Feb 2015
  *
  *	@param string [dialog_id] The i.d. of the div within #dialog_overlay containing the html of the dialog box (initially hidden)
