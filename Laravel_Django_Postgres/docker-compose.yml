@@ -1,0 +1,72 @@
+version: '2.0'
+services:
+  laravel:
+    build:
+     context: ./laravel
+    image: mentor-connection-laravel
+    ports:
+      - "8080:80" #what port the outside sees it as : what the container sees it as
+    volumes:
+    - "./laravel/mentor_app:/var/www/html"
+    - "./laravel/logs:/var/log/apache2"
+    environment:
+      - APACHE_RUN_USER=#1000
+      - APACHE_RUN_GROUP=#1000
+      - DJANGO_HOSTNAME=django
+      - DJANGO_PORT=8000
+      - DJANGO_SCHEME=http
+      - POSTGRES_HOSTNAME=db
+      - LARAVEL_ROOT=/var/www/html
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_PASSWORD=password
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=fXgwvHwk4C6YyVuh #only for local testing purposes
+    stdin_open: true
+    tty: true
+  django:
+    build:
+      context: ./django
+    image: mentor-django
+    volumes:
+      - "./django/mentor_django:/home/django/app"
+      - "./django/mentor_django/media:/home/django/app/media"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - "db"
+    environment:
+      - MIGRATE=1
+      - DEBUG=0
+      - DJANGO_PORT=8000
+      - POSTGRES_PORT=5432
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres_django
+      - POSTGRES_HOSTNAME=db
+      - LARAVEL_HOSTNAME=laravel
+      - DJANGO_SUPERUSER_PASSWORD=password
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_ROOT=/home/django/app
+      - CREATESUPERUSER=1
+    stdin_open: true
+    tty: true
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres_django
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - LARAVEL_HOSTNAME=laravel
+      - DJANGO_HOSTNAME=django
+      - DJANGO_PORT=8000
+    volumes:
+      - "db-data:/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
+    stdin_open: true
+    tty: true
+
+volumes:
+  db-data:

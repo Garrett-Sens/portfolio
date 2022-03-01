@@ -1,18 +1,15 @@
 <?php
 
-// 
-// Edu_Utah_Som_Data_OracleTable
-// @author Garrett Sens
-// 
-
-// Purpose
-
-// The Zend_Db_Table class acts as an object-oriented interface to database tables. This class both extends and simplifies Zend_Db_Table's methods when working with Oracle SQL databases. 
-
-
-// Instructions
+/**
+ * Edu_Utah_Som_Data_OracleTable
+ * @author Garrett Sens
+ * 
+ * The Zend_Db_Table class acts as an object-oriented interface to database tables. This class both extends and simplifies Zend_Db_Table's methods when working with Oracle SQL databases. 
+ */
 
 /*
+ * Instructions
+ *
 TABLE INSTANTIATION
 
 	Zend_Loader::loadClass( 'Edu_Utah_Som_Data_OracleTable' );

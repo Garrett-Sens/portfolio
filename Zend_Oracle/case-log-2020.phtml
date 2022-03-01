@@ -1,0 +1,762 @@
+<?php
+
+/**
+ * case-log-2020.phtml
+ * @author Garrett Sens
+ * 
+ * This view displayed the case log form that our Genetics students used to add entries to their case log. 
+ */
+
+$this->headScript()
+	->appendFile( DIR_PUBLIC . '/javascript/overlay.js','text/javascript' );
+?>
+
+<style type="text/css">
+<?php $this->headStyle()->captureStart( 'APPEND', array( 'media' => 'screen, print' )); ?>
+	
+	h5
+	{
+		font-size: 1em;
+	}
+
+	textarea
+	{
+		resize: none;
+		overflow-y: auto;
+	}
+
+	form label
+	{
+		font-weight: normal;
+	}
+
+	form input,
+	form select,
+	form textarea
+	{
+		background-color: #fff;
+		border: 1px solid #aaa;
+		font-size: 14px;
+		padding: 12px 8px;
+	}
+
+	form textarea
+	{
+		padding: 4px 8px;
+	}
+
+	form select
+	{
+		padding: 11px 8px 11px 8px;
+	}
+
+	#section-case-information
+	{
+		overflow: visible;
+	}
+
+	/* Tooltip container */
+	.tooltip {
+		position: relative;
+		display: inline-block;
+	}
+
+	/* Tooltip text */
+	.tooltip .tooltiptext
+	{
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 6px;
+		bottom: 125%;
+		/*left: 50%;*/
+		margin-left: -60px;
+		opacity: 0;
+		padding: 10px;
+		position: absolute;
+		transition: opacity 0.3s;
+		width: 400px;
+		visibility: hidden;
+		z-index: 100;
+	}
+
+	/* Tooltip arrow */
+	.tooltip .tooltiptext::after
+	{
+		border-color: #555 transparent transparent transparent;
+		border-style: solid;
+		border-width: 5px;
+		content: "";
+		left: 50%;
+		margin-left: -5px;
+		position: absolute;
+		top: 100%;
+	}
+
+	/* Show the tooltip text when you mouse over the tooltip container */
+	.tooltip:hover .tooltiptext
+	{
+		opacity: 1;
+		visibility: visible;
+	}
+
+	.column.main h1
+	{
+		font-size: 3.0rem;
+		text-align: center;
+	}
+
+	.column.main h2
+	{
+		padding: 0 10px;
+	}
+
+	.column.main .input-wrap h4
+	{
+		display: block;
+		margin-bottom: 0;
+		width: 100%;
+	}
+
+	.column.main ul, ol
+	{
+		margin-left: 0px;
+		padding: 4px 0px;
+	}
+
+	.column.main .input-wrap label
+	{
+		padding: 2px 0;
+	}
+
+	.column.main .input-wrap p
+	{
+		padding-bottom: 4px;
+	}
+
+	.column.main section
+	{
+		margin-bottom: 40px;
+	}
+
+	.column.main section > div
+	{
+		padding: 20px;
+		background-color: #fff;
+	}
+
+	.description
+	{
+		font-style: italic;
+		margin-top: 8px;
+	}
+
+	.fake-textarea
+	{
+		/*background: #efefef;*/
+		border: 1px solid #aaa;
+		color: #666;
+		font-size: 14px;
+		min-height: 26px;
+		padding: 4px 8px;
+		white-space: pre-wrap
+	}
+
+	.two-column
+	{
+		display: flex;
+		justify-content: space-between;
+	}
+
+	.two-column > *
+	{
+		flex-basis: 47%;
+	}
+
+	.div-form-box .two-column > *
+	{
+		flex-basis: 69%;
+	}
+
+	.div-form-box .two-column .label
+	{
+		flex-basis: 30%;
+		font-weight: bold;
+	}
+
+	.input-wrap
+	{
+		margin-bottom: 20px;
+	}
+
+	.input-wrap label span
+	{
+		font-weight: bold;
+	}
+
+	.input-wrap select,
+	.input-wrap input
+	{
+		width: 100%;
+	}
+
+	.input-wrap input[type=checkbox],
+	.input-wrap input[type=radio]
+	{
+		width: auto;
+	}
+
+	.no-margin-bottom
+	{
+		margin-bottom: 0px;
+	}
+
+	.no-bullet
+	{
+		list-style-type: none;
+	}
+
+	.div-form-box
+	{
+		border: 1px solid #AAA;
+	}
+
+	.button-save
+	{
+		display: block;
+		margin: 0 auto;
+	}
+
+	.div-student-decision-buttons
+	{
+		display: flex;
+		justify-content: center;
+		margin-top: 10px;
+	}
+
+	.div-supervisor-decision-buttons
+	{
+		display: flex;
+		justify-content: space-between;
+		margin: 10px auto 0;
+		width: 260px;
+	}
+
+	.button-submit
+	{
+		color: #fff;
+		font-size: 20px;
+		padding: 8px 12px;
+		border: none;
+	}
+
+	.button-submit:hover
+	{
+		box-shadow: 2px 2px #666;
+			transform: translateY(-1px);
+	}
+
+	.button-save,
+	.button-save:enabled:hover, /* override yellow from default.css */
+	.button-reject,
+	.button-reject:enabled:hover
+	{
+		background-color: #ac3030; /* red */
+	}
+
+	.button-acknowledge,
+	.button-acknowledge:enabled:hover /* override yellow from default.css */
+	{
+		background-color: #00b300; /* green */
+	}
+
+	.dialog-reject,
+	.dialog-reject .ui-widget-content
+	{
+		background: #ccc;
+	}
+
+	#CASELOG_DIAGNOSIS
+	{
+		width: 100%;
+	}
+
+	#section-case-information .div-form-box
+	{
+		
+	}
+
+	#section-case-information .div-first-row, #section-case-information .div-second-row
+	{
+		flex-direction: row;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+	}
+
+	#section-case-information .div-second-row .input-wrap
+	{
+		/*flex-basis: 20%;*/
+		
+	}
+
+	#section-case-information .input-wrap
+	{
+		flex-basis: 30%;
+	}
+
+	#section-case-information .input-wrap.full-width
+	{
+		flex-basis: 100%
+	}
+
+	#section-comments textarea
+	{
+		width: 100%;
+	}
+
+	#section-other textarea
+	{
+		width: 100%;
+	}
+
+	#section-responsibilities textarea,
+	#section-reflection textarea,
+	#section-supervisor-comments textarea
+	{
+		width: 100%;
+		resize: vertical;
+		overflow-y: scroll;
+		min-height: 330px;
+		max-height: 1000px;
+	}
+
+	#section-supervisor-comments textarea
+	{
+		min-height: 100px;
+	}
+
+	input:disabled,
+	select:disabled,
+	textarea:disabled
+	{
+		background: #efefef;
+	}
+
+	.red
+	{
+		color: #ac3030;
+	}
+
+<?php $this->headStyle()->captureEnd(); ?>
+</style>
+
+<h1>UUGPGC Logbook Form</h1>
+<?php if( $this->isSomGenetic === true ): ?>
+<form id='form-create-case-log' method="POST" disabled='disabled'>
+<?php else: ?>
+<form id='form-create-case-log' method="POST">
+<?php endif; ?>
+
+<?php if( $this->isSomGenetic ): ?>
+	<?php if( $this->isSupervisorAcknowledging ): ?>
+		<div class='div-supervisor-decision-buttons no-print'>
+			<button class="button-submit button-acknowledge" type="submit" name='SUBMIT' value='SUPERVISOR_ACKNOWLEDGE'>Acknowledge</button>
+			<button class="button-submit button-reject" type="submit" name='SUBMIT' value='SUPERVISOR_REJECT'>Reject</button>
+		</div>
+	<?php endif; ?>
+<?php else: ?>
+	<?php if( $this->isStudentAcknowledging ): ?>
+		<button class="button-submit button-save no-print" type="submit" name='SUBMIT' value='SAVE'>Save</button>
+		<?php if( $this->isEdit ): ?>
+			<div class='div-student-decision-buttons no-print'>
+				<button class="button-submit button-acknowledge" type="submit" name='SUBMIT' value='STUDENT_ACKNOWLEDGE'>Acknowledge</button>
+			</div>
+		<?php endif; ?>
+	<?php endif; ?>
+<?php endif; ?>
+	
+	<section id="section-case-information">
+		<h2>Case Information<?php 
+		if( isset( $this->dataGpgcCaseLog['CASELOG_ID'] ) )
+		{
+			echo ": " . $this->dataGpgcCaseLog['CASELOG_ID'];
+		}
+		 ?></h2>
+		<div class="div-form-box">
+			<div class="div-first-row">
+				<div class="input-wrap">
+					<h4>Case Date<span class='red'>*</h4>
+					<label>
+						<input type="text" id="ACTIVITY_DATE" name="ACTIVITY_DATE" <?php if( $this->isFormLocked ) echo 'disabled' ?>>
+					</label>
+				</div>
+				<div class="input-wrap">
+					<h4>Fieldwork Site<span class='red'>*</span></h4>
+					<label>
+						<select id="LOCATION_IDENCRYPTED" name="LOCATION_IDENCRYPTED" <?php if( $this->isFormLocked ) echo 'disabled' ?>></select>
+					</label>
+				</div>
+				<div class="input-wrap">
+					<h4>Fieldwork Supervisor<span class='red'>*</span></h4>
+					<label>
+						<select id="SUPERVISOR_IDENCRYPTED" name="SUPERVISOR_IDENCRYPTED" <?php if( $this->isFormLocked ) echo 'disabled' ?>></select>
+					</label>
+				</div>
+			</div>
+			<div class="div-second-row">
+				<div class="input-wrap">
+					<h4>Case Category<span class='red'>*</span></h4>
+					<ul class="no-bullet">
+						<?php foreach( $this->optionsCaseCategoryType as $idGpgcCaseCategoryType => $nameGpgcCaseCategoryType ): ?>
+						<li>
+							<label><input type="radio" name="CASE_CATEGORY_TYPE_IDENCRYPTED" value="<?php echo $idGpgcCaseCategoryType; ?>" <?php if( $this->isFormLocked ) echo 'disabled' ?>> <?php echo $nameGpgcCaseCategoryType; ?></label>
+						</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+				<div class="input-wrap">
+					<h4>Service Delivery Model<span class='red'>*</span></h4>
+					<ul class="no-bullet">
+						<?php foreach ($this->optionsEncounterType as $idEncounterType => $nameEncounterType): ?>
+							<li>
+								<label><input type="checkbox" name="ENCOUNTER_TYPE_ID[]" value="<?php echo $idEncounterType ?>" <?php if( $this->isFormLocked ) echo 'disabled' ?>> <?php echo $nameEncounterType ?></label>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+				<div class="input-wrap">
+					<h4>Case Type<span class='red'>*</span></h4>
+					<ul class="no-bullet">
+						<?php foreach( $this->optionsCaseType as $idCaseType => $nameCaseType ): ?>
+						<li>
+							<label><input type="radio" name="CASE_TYPE_IDENCRYPTED" value="<?php echo $idCaseType; ?>" <?php if( $this->isFormLocked ) echo 'disabled' ?>> <?php echo $nameCaseType; ?></label>
+						</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+				<div class="input-wrap">
+					<h4>Specialties<span class='red'>*</span></h4>
+					<ul class="no-bullet">
+						<?php foreach( $this->optionsSpecialtyType as $idSpecialtyType => $nameSpecialtyType ): ?>
+						<li>
+							<label><input type="checkbox" name="SPECIALTY_TYPE_ID[]" value="<?php echo $idSpecialtyType; ?>" <?php if( $this->isFormLocked ) echo 'disabled' ?>> <?php echo $nameSpecialtyType; ?></label>
+						</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+				<div class="input-wrap">
+					<h4>Practice Settings<span class='red'>*</span></h4>
+					<ul class="no-bullet">
+						<?php foreach( $this->optionsPracticeSettingType as $idPracticeSettingType => $namePracticeSettingType ): ?>
+						<li>
+							<label><input type="checkbox" name="PRACTICE_SETTING_TYPE_ID[]" value="<?php echo $idPracticeSettingType; ?>" <?php if( $this->isFormLocked ) echo 'disabled' ?>> <?php echo $namePracticeSettingType; ?></label>
+						</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+				<div class="input-wrap">
+					<h4>Stage of Lifecycle<span class='red'>*</span></h4>
+					<ul class="no-bullet">
+						<?php foreach( $this->optionsLifecycle as $idLifecycle => $nameLifecycle ): ?>
+						<li>
+							<label><input type="radio" name="LIFECYCLE_ID" value="<?php echo $idLifecycle; ?>" <?php if( $this->isFormLocked ) echo 'disabled' ?>> <?php echo $nameLifecycle; ?></label>
+						</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+				<div class="input-wrap">
+					<h4>Did client require an interpreter?<span class='red'>*</span></h4>
+					<ul class="no-bullet">
+						<li><label><input type='radio' name="IS_INTERPRETER_NEEDED" value='1' <?php if( $this->isFormLocked ) echo 'disabled' ?>> Yes</label></li>
+						<li><label><input type='radio' name="IS_INTERPRETER_NEEDED" value='0' <?php if( $this->isFormLocked ) echo 'disabled' ?>> No</label></li>
+					</ul>
+				</div>
+				<div class="input-wrap">
+					<h4>Ethnicity/Race<span class='red'>*</span></h4>
+					<p class='description'>Indicate the client's ethnic and racial background:</p>
+					<ul class="no-bullet">
+						<?php foreach( $this->optionsEthnicity as $idEthnicity => $nameEthnicity ): ?>
+						<li>
+							<label><input type="checkbox" name="ETHNICITY_ID[]" value="<?php echo $idEthnicity; ?>" <?php if( $this->isFormLocked ) echo 'disabled' ?>> <?php echo $nameEthnicity; ?></label>
+						</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+				<div class="input-wrap">
+					<h4>PBC Domains<span class='red'>*</span><span class='red'>*</span></h4>
+					<p class='description'>Indicate which of the following PBC Domains were addressed in this case:</p>
+					<ul class="no-bullet">
+						<?php foreach( $this->optionsPBCDomainType as $idPBCDomainType => $namePBCDomainType ): ?>
+						<li>
+							<label><input type="checkbox" name="PBC_DOMAIN_TYPE_ID[]" value="<?php echo $idPBCDomainType; ?>" <?php if( $this->isFormLocked ) echo 'disabled' ?>> <?php echo $namePBCDomainType; ?></label>
+						</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+				<div class="input-wrap">
+					<div class="tooltip">
+						<h4>Participatory Case<span class='red'>*</span></h4>
+						<p class='description'>Does this case fulfill the definition of a participatory case? (hover here for instructions)</p>
+						<div class="tooltiptext">
+							<h5>Instructions</h5>
+							<p>To be considered a participatory case, each of these criteria must be met:</p>
+							<p>1. supervised by a certified GC (ABGC, ABMGG, CAGC)</p>
+							<p>2. student accepts & performs responsibility(ies) typically undertaken by the GC in the respective clinic</p>
+							<p>3. case includes interaction with a “client” defined by ACGC standard B3.1.1 (simulated or non-simulated patient and/or a research participant)</p>
+							<p>4. minimum of 2 PBC domains addressed in the case</p>
+						</div>
+					</div>
+					<ul class="no-bullet">
+						<li><label><input type='radio' name="IS_PARTICIPATORY_CASE" value='1' <?php if( $this->isFormLocked ) echo 'disabled' ?>> Yes</label></li>
+						<li><label><input type='radio' name="IS_PARTICIPATORY_CASE" value='0' <?php if( $this->isFormLocked ) echo 'disabled' ?>> No</label></li>
+					</ul>
+				</div>
+			</div>
+			<div class="input-wrap full-width" >
+				<label>
+					<h4>Diagnosis/Indication<span class='red'>*</span></h4>
+					<textarea id="CASELOG_DIAGNOSIS" name="CASELOG_DIAGNOSIS" <?php if( $this->isFormLocked ) echo 'disabled' ?>></textarea>
+				</label>
+			</div>
+			<div class='required-notice'>
+				<p class='red'>* required</p>
+				<p class='red'>** two or more domains are required when Case Category is not "Other"</p>
+			</div>
+		</div>
+	</section>
+	<section id='section-responsibilities'>
+		<h2>GC Student Responsibilities</h2>
+		<div class="div-form-box">
+			<p>Briefly describe your roles and responsibilities for this encounter, e.g., "I was the primary GC for this case and conducted the following....", or, "I co-counseled with my supervisor and was responsible for taking the medical and family histories, obtaining consent, etc."</p>
+			<div class="input-wrap no-margin-bottom">
+				<label>
+					<textarea id="STUDENT_RESPONSIBILITIES_TEXT" name="STUDENT_RESPONSIBILITIES_TEXT" rows="20" <?php if( $this->isFormLocked ) echo 'disabled' ?>></textarea>
+				</label>
+			</div>
+		</div>
+	</section>
+	<section id='section-reflection'>
+		<h2>Case Self-reflection</h2>
+		<div class="div-form-box">
+			<div class="input-wrap no-margin-bottom">
+				<label>
+					<textarea id="REFLECTION_TEXT" name="REFLECTION_TEXT" rows="20" <?php if( $this->isFormLocked ) echo 'disabled' ?>></textarea>
+				</label>
+			</div>
+		</div>
+	</section>
+	<section id='section-supervisor-comments'>
+		<h2>Supervisor Comments</h2>
+		<div class="div-form-box">
+			<div class="input-wrap no-margin-bottom">
+				<label>
+					<textarea id="SUPERVISOR_REJECTION_MESSAGE" name="SUPERVISOR_REJECTION_MESSAGE" rows="10" <?php if( !$this->isSupervisorAcknowledging ) echo 'disabled' ?>></textarea>
+				</label>
+			</div>
+		</div>
+	</section>
+
+<?php if( $this->isSomGenetic ): ?>
+	<?php if( $this->isSupervisorAcknowledging ): ?>
+		<div class='div-supervisor-decision-buttons no-print'>
+			<button class="button-submit button-acknowledge" type="submit" name='SUBMIT' value='SUPERVISOR_ACKNOWLEDGE'>Acknowledge</button>
+			<button class="button-submit button-reject" type="submit" name='SUBMIT' value='SUPERVISOR_REJECT'>Reject</button>
+		</div>
+	<?php endif; ?>
+<?php else: ?>
+	<?php if( $this->isStudentAcknowledging ): ?>
+		<button class="button-submit button-save no-print" type="submit" name='SUBMIT' value='SAVE'>Save</button>
+		<?php if( $this->isEdit ): ?>
+			<div class='div-student-decision-buttons no-print'>
+				<button class="button-submit button-acknowledge" type="submit" name='SUBMIT' value='STUDENT_ACKNOWLEDGE'>Acknowledge</button>
+			</div>
+		<?php endif; ?>
+	<?php endif; ?>
+<?php endif; ?>
+</form>
+
+<script type="text/javascript">
+<?php $this->inlineScript()->captureStart(); ?>
+
+	// close the window after acknowledging as student or supervisor
+	const doCloseWindow = <?php echo json_encode( $this->doCloseWindow ); ?>;
+	if( doCloseWindow === true )
+	{
+		window.close();
+	}
+
+	const buttonReject = $( ".button-reject" );
+	buttonReject.on( 'click', function( ev )
+	{
+		const isRejectionExplained = $( "#SUPERVISOR_REJECTION_MESSAGE" ).val().length > 0;
+		if( isRejectionExplained === false )
+		{
+			// alert( "You must enter supervisor comments at the bottom of the form in order to reject this case log entry." );
+
+			$( "#SUPERVISOR_REJECTION_MESSAGE" ).focus();
+
+			ev.preventDefault();
+		}
+	});
+
+	const formCreateCaseLog = $( '#form-create-case-log' );
+
+	// insert location options into form
+	const optionsLocation = <?php echo json_encode( $this->optionsLocation ); ?>;
+	let selectLocation = formCreateCaseLog.find('#LOCATION_IDENCRYPTED');
+	$.each( optionsLocation, function( key, value )
+	{
+		selectLocation.append( "<option value='" + key + "'>" + value + "</option>" );
+	});
+
+	// insert supervisor options into form
+	const optionsSupervisor = <?php echo json_encode( $this->optionsSupervisor ); ?>;
+	const selectSupervisor = $('#SUPERVISOR_IDENCRYPTED');
+	$.each( optionsSupervisor, function( key, value )
+	{
+		selectSupervisor.append( "<option value='" + key + "'>" + value + "</option>" );
+	});
+
+	formCreateCaseLog.find( '#ACTIVITY_DATE' ).datepicker({'defaultDate':+0,'dateFormat':'mm/dd/yy','showButtonPanel':true,'numberOfMonths':2});
+
+	// 
+	// populate top part of form and comments at bottom
+	// 
+	let dataGpgcCaseLog = <?php echo json_encode( $this->dataGpgcCaseLog ); ?>;
+
+	if( dataGpgcCaseLog !== null )
+	{
+		// rename key if editing page
+		if( dataGpgcCaseLog['ENCOUNTER_TYPE_ID_LIST'] )
+		{
+			dataGpgcCaseLog['ENCOUNTER_TYPE_ID[]'] = dataGpgcCaseLog['ENCOUNTER_TYPE_ID_LIST'];
+		}
+		// rename key if form validation failed
+		else if( dataGpgcCaseLog['ENCOUNTER_TYPE_ID'] )
+		{
+			dataGpgcCaseLog['ENCOUNTER_TYPE_ID[]'] = dataGpgcCaseLog['ENCOUNTER_TYPE_ID'].join( '; ' );
+		}
+
+		// rename key if editing page
+		if( dataGpgcCaseLog['SPECIALTY_TYPE_ID_LIST'] )
+		{
+			dataGpgcCaseLog['SPECIALTY_TYPE_ID[]'] = dataGpgcCaseLog['SPECIALTY_TYPE_ID_LIST'];
+		}
+		// rename key if form validation failed
+		else if( dataGpgcCaseLog['SPECIALTY_TYPE_ID'] )
+		{
+			dataGpgcCaseLog['SPECIALTY_TYPE_ID[]'] = dataGpgcCaseLog['SPECIALTY_TYPE_ID'].join( '; ' );
+		}
+
+		// rename key if editing page
+		if( dataGpgcCaseLog['PRACTICE_SET_TYPE_ID_LIST'] )
+		{
+			dataGpgcCaseLog['PRACTICE_SETTING_TYPE_ID[]'] = dataGpgcCaseLog['PRACTICE_SET_TYPE_ID_LIST'];
+		}
+		// rename key if form validation failed
+		else if( dataGpgcCaseLog['PRACTICE_SETTING_TYPE_ID'] )
+		{
+			dataGpgcCaseLog['PRACTICE_SETTING_TYPE_ID[]'] = dataGpgcCaseLog['PRACTICE_SETTING_TYPE_ID'].join( '; ' );
+		}
+
+
+		// rename key if editing page
+		if( dataGpgcCaseLog['PBC_DOMAIN_TYPE_ID_LIST'] )
+		{
+			dataGpgcCaseLog['PBC_DOMAIN_TYPE_ID[]'] = dataGpgcCaseLog['PBC_DOMAIN_TYPE_ID_LIST'];
+		}
+		// rename key if form validation failed
+		else if( dataGpgcCaseLog['PBC_DOMAIN_TYPE_ID'] )
+		{
+			dataGpgcCaseLog['PBC_DOMAIN_TYPE_ID[]'] = dataGpgcCaseLog['PBC_DOMAIN_TYPE_ID'].join( '; ' );
+		}
+
+		// rename key if editing page
+		if( dataGpgcCaseLog['ETHNICITY_ID_LIST'] )
+		{
+			dataGpgcCaseLog['ETHNICITY_ID[]'] = dataGpgcCaseLog['ETHNICITY_ID_LIST'];
+		}
+		// rename key if form validation failed
+		else if( dataGpgcCaseLog['ETHNICITY_ID'] )
+		{
+			dataGpgcCaseLog['ETHNICITY_ID[]'] = dataGpgcCaseLog['ETHNICITY_ID'].join( '; ' );
+		}
+		
+		$.each( dataGpgcCaseLog, function( key, value )
+		{
+			// skip empty values
+			if( value === null || value.length === 0 )
+			{
+				return;
+			}
+
+			let input = formCreateCaseLog.find( '[name="' + key + '"]' );
+
+			// if form has input with name matching data from view_gpgc_case_log
+			if( input.length > 0 )
+			{
+				// if radio, checkbox
+				switch( input.attr( 'type' ) )
+				{
+					case 'checkbox':
+						value = value.split( '; ' );
+
+						$.each( input, function( key, inputMultiple )
+						{
+							if( value.includes( inputMultiple.value ) )
+							{
+								$( inputMultiple ).prop( 'checked', true );
+							}
+						} );
+
+						break;
+
+					case 'radio':
+						$.each( input, function( key, inputMultiple )
+						{
+							if( inputMultiple.value === value )
+							{
+								$( inputMultiple ).prop( 'checked', true );
+								return false;
+							}
+						} );
+					break;
+
+					// if input, textarea
+					default:
+						input.val( value );
+					break;
+				}
+			}			
+		});
+	}
+
+	// 
+	// populate notes
+	// 
+	const listGpgcNote = <?php echo json_encode( $this->listGpgcNote ); ?>;
+	if( listGpgcNote !== null )
+	{
+		$.each( listGpgcNote, function( key, dataNote )
+		{
+			const textareaNote = $( '#NOTE_TEXT_' + dataNote['ROLE_ID'] );
+			textareaNote.val( dataNote['NOTE_TEXT'] );
+		} );
+	}
+	
+	// print only styles
+	const listTextarea = $( 'textarea' );
+	$.each( listTextarea, function( i, textarea )
+	{
+		textarea.className += " no-print";
+		const parent = $( textarea ).parent();
+		parent.append( "<div class='fake-textarea print-only'>" + textarea.value + "</div>" );
+	} );
+
+	$( 'form' ).on( 'submit', function( ev )
+	{
+		showLoadingOverlay();
+	});
+
+<?php $this->inlineScript()->captureEnd(); ?>
+</script>

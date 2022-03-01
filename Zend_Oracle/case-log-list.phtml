@@ -1,0 +1,663 @@
+<?php
+
+/**
+ * case-log-list.phtml
+ * @author Garrett Sens
+ * 
+ * This view builds a jQuery-based DataTable HTML table listing all case log entries in the current academic year for the logged-in Genetics student.
+ */
+
+?>
+
+<style type="text/css">
+<?php $this->headStyle()->captureStart('APPEND'); ?>
+
+h1
+{
+	font-size: 32px;
+}
+
+.font-green
+{
+	color: #009800;
+}
+
+a.red:hover
+{
+	text-decoration: none;
+}
+
+table.dataTable tbody th,
+table.dataTable tbody td
+{
+    white-space: nowrap;
+}
+
+.dataTable a
+{
+	text-align: center;
+	width: 46px;
+}
+
+.dataTable .highlight td
+{
+	font-weight: bold;
+}
+
+#div-create-button-wrap 
+{
+	float: right;
+	margin-bottom: 5px;
+	text-align: right;
+	width: 200px;
+}
+
+#div-create-button-wrap a
+{
+	background-color: #ac3030;
+	border: none;
+	color: #fff;
+	font-size: 18px;
+	padding: 8px 12px;
+}
+
+#div-create-button-wrap a:hover
+{
+	background-color: #ac3030;
+	box-shadow: 2px 2px #666;
+  	transform: translateY(-1px);
+}
+
+#form-academic-year
+{
+	width: 100%;
+}
+
+
+<?php $this->headStyle()->captureEnd(); ?>
+</style>
+
+<section class='page'>
+	<section class='block'>
+		<h1>Case Logs</h1>
+		<div id="div-create-button-wrap">
+		<?php if( $this->isSomGenetic ): ?>
+			<?php if( $this->is2020Form ): ?>
+				<a class="red" target='_blank' href='/som.genetic/index/case-log-2020'>View Form</a>
+			<?php else: ?>
+				<a class="red" target='_blank' href='/som.genetic/index/case-log'>View Form</a>
+			<?php endif; ?>
+		<?php else: ?>
+			<?php if( $this->is2020Form ): ?>
+				<a class="red" href='/som.genetic.student/index/case-log-2020'>Create New</a>
+			<?php else: ?>
+				<a class="red" href='/som.genetic.student/index/case-log'>Create New</a>
+			<?php endif; ?>
+		<?php endif; ?>
+		</div>
+		<div>Case logs that have been acknowledged by the student but not the supervisor will be <strong>bold</strong>.</div>
+		<?php if( $this->isSomGenetic === true ): ?>
+		<form id='form-academic-year' class='edu-utah-som-form'>
+			<div class='form-element one-quarter-width'>
+				<label for="ACADEMIC_YEAR">Academic Year</label>
+				<div class='form-input-wrap'>
+					<select id='ACADEMIC_YEAR' name='ACADEMIC_YEAR'></select>
+				</div>
+			</div>
+		</form>
+		<?php endif; ?>
+		<table width="100%" id="case_log" style="width: 100%"></table>
+	</section>
+</section>
+
+<script type="text/javascript">
+<?php $this->inlineScript()->captureStart('APPEND'); ?>
+
+
+function makeAjaxErrorMessage( result, status, error )
+{
+	return "Ajax Error (" + status + ")\n\n" + error + "\n\nResponse\n" + result.responseText.replace( /\\n/g, "\n" );
+}
+
+
+function fillAcademicYearsForm( selectAcademicYear )
+{
+	return ajax({
+		<?php if( $this->isSomGenetic === true ): ?>
+		url: '/api.v3.som.genetic/crud.api/',
+		<?php else: ?>
+		url: '/api.v3.som.genetic.student/crud.api/',
+		<?php endif; ?>
+		method: 'post',
+		data: {
+			'table' : 'somcme.gpgc_caselog',
+			'action' : 'select',
+			'data' : {
+				'columns' : [ 'ACADEMIC_YEAR' ],
+				'order' : [ 'ACADEMIC_YEAR desc' ],
+				0 : 'distinct'
+			}
+		}
+	}).then(
+		function( data )
+		{
+			const listAcademicYear = data.data;
+
+			$.each( listAcademicYear, function( key, dataAcademicYear )
+			{
+				selectAcademicYear.append( "<option value='" + dataAcademicYear['ACADEMIC_YEAR'] + "'>" + dataAcademicYear['ACADEMIC_YEAR'] + "</option>" );
+			} );
+
+			selectAcademicYear.val( yearAcademicCurrent );
+		}
+	);
+}
+
+
+function deleteAcknowledgements( dataRow )
+{
+	return new Promise( function( resolve, reject )
+	{
+		$.ajax({
+			url : '/api.v3.som.genetic/crud.api/update',
+			dataType: 'json',
+			method: 'POST',
+			data: {
+				table: 'somcme.gpgc_caselog',
+				data: {
+					data: {
+						STUDENT_ACKNOWLEDGE_DATE: '',
+						SUPERVISOR_ACKNOWLEDGE_DATE: ''
+					},
+					where: {
+						CASELOG_ID: dataRow['CASELOG_ID']
+					}
+				}
+			},
+			error: function( result, status, error )
+			{
+				throw new Error( makeAjaxErrorMessage( result, status, error ) );
+			},
+			success: function( data )
+			{
+				return resolve( data );
+			}
+		});
+	});
+}
+
+
+function deleteCaseLogDependencies( dataRow )
+{
+	return Promise.all(
+		[
+			new Promise( function( resolve, reject )
+			{
+				$.ajax({
+					url : '/api.v3.som.genetic.student/crud.api/delete',
+					dataType: 'json',
+					method: 'POST',
+					data: {
+						table: 'somcme.gpgc_caselog_pbc_domain',
+						data: {
+							where: {
+								CASELOG_ID: dataRow['CASELOG_ID']
+							}
+						}
+					},
+					error: function( result, status, error )
+					{
+						throw new Error( makeAjaxErrorMessage( result, status, error ) );
+					},
+					success: function( data )
+					{
+						return resolve( data );
+					}
+				});
+			}),
+			new Promise( function( resolve, reject )
+			{
+				$.ajax({
+					url : '/api.v3.som.genetic.student/crud.api/delete',
+					dataType: 'json',
+					method: 'POST',
+					data: {
+						table: 'somcme.gpgc_caselog_specialty',
+						data: {
+							where: {
+								CASELOG_ID: dataRow['CASELOG_ID']
+							}
+						}
+					},
+					error: function( result, status, error )
+					{
+						throw new Error( makeAjaxErrorMessage( result, status, error ) );
+					},
+					success: function( data )
+					{
+						return resolve( data );
+					}
+				});
+			}),
+			new Promise( function( resolve, reject )
+			{
+				$.ajax({
+					url : '/api.v3.som.genetic.student/crud.api/delete',
+					dataType: 'json',
+					method: 'POST',
+					data: {
+						table: 'somcme.gpgc_caselog_practice',
+						data: {
+							where: {
+								CASELOG_ID: dataRow['CASELOG_ID']
+							}
+						}
+					},
+					error: function( result, status, error )
+					{
+						throw new Error( makeAjaxErrorMessage( result, status, error ) );
+					},
+					success: function( data )
+					{
+						return resolve( data );
+					}
+				});
+			}),
+			new Promise( function( resolve, reject )
+			{
+				$.ajax({
+					url : '/api.v3.som.genetic.student/crud.api/delete',
+					dataType: 'json',
+					method: 'POST',
+					data: {
+						table: 'somcme.gpgc_caselog_encounter',
+						data: {
+							where: {
+								CASELOG_ID: dataRow['CASELOG_ID']
+							}
+						}
+					},
+					error: function( result, status, error )
+					{
+						throw new Error( makeAjaxErrorMessage( result, status, error ) );
+					},
+					success: function( data )
+					{
+						return resolve( data );
+					}
+				});
+			}),
+			new Promise( function( resolve, reject )
+			{
+				$.ajax({
+					url : '/api.v3.som.genetic.student/crud.api/delete',
+					dataType: 'json',
+					method: 'POST',
+					data: {
+						table: 'somcme.gpgc_caselog_ethnicity',
+						data: {
+							where: {
+								CASELOG_ID: dataRow['CASELOG_ID']
+							}
+						}
+					},
+					error: function( result, status, error )
+					{
+						throw new Error( makeAjaxErrorMessage( result, status, error ) );
+					},
+					success: function( data )
+					{
+						return resolve( data );
+					}
+				});
+			})
+		]
+	);
+}
+
+
+function deleteCaseLog( dataRow )
+{
+	return new Promise( function( resolve, reject )
+	{
+		$.ajax({
+			url : '/api.v3.som.genetic.student/crud.api/delete',
+			dataType: 'json',
+			method: 'POST',
+			data: {
+				table: 'somcme.gpgc_caselog',
+				data: {
+					where: {
+						CASELOG_ID: dataRow['CASELOG_ID']
+					}
+				}
+			},
+			error: function( result, status, error )
+			{
+				throw new Error( makeAjaxErrorMessage( result, status, error ) );
+			},
+			success: function( data )
+			{
+				return resolve( data );
+			}
+		});
+	});
+}
+
+
+const applicationUserId = <?php echo json_encode( $this->applicationUserId ); ?>;
+const yearAcademicCurrent = "<?php echo $this->yearAcademic; ?>";
+const selectAcademicYear = $( '#ACADEMIC_YEAR' );
+let datatableCaseLog = null;
+
+showLoadingOverlay();
+
+fillAcademicYearsForm( selectAcademicYear ).then( function()
+{
+	return new Promise( function( resolve, reject )
+	{
+		datatableCaseLog = $( '#case_log' ).CrudTable({
+			ajax: {
+				<?php if( $this->isSomGenetic === true ): ?>
+				url: '/api.v3.som.genetic/crud.api/',
+				<?php else: ?>
+				url: '/api.v3.som.genetic.student/crud.api/',
+				<?php endif; ?>
+				type: 'POST',
+				data: function( data )
+				{
+					return {
+						action: 'select',
+						table : 'somcme.view_gpgc_caselog',
+						data : {
+							// admin and supervisor where clause
+							<?php if( $this->isSomGenetic === true ): ?>
+								// admin
+								<?php if( in_array( 'ADMINISTRATOR', $this->typesUser ) ): ?>
+								'where': {
+									'ACADEMIC_YEAR' : selectAcademicYear.val() || yearAcademicCurrent,
+								},
+								// supervisor
+								<?php elseif( in_array( 'SUPERVISOR', $this->typesUser ) ): ?>
+								'where': {
+									'ACADEMIC_YEAR' : selectAcademicYear.val() || yearAcademicCurrent,
+									'SUPERVISOR_APPLICATIONUSERID': applicationUserId
+								},
+								<?php endif; ?>
+							// student where clause
+							<?php else: ?>
+							'where': {
+								'APPLICATIONUSERID': applicationUserId,
+							},
+							<?php endif; ?>
+							'dateformats': {
+								'ACTIVITY_DATE': 'datepicker'
+							},
+							'order' : [
+								'ACTIVITY_DATE DESC'
+							]
+						}
+					}
+				}
+			},
+			createdRow: function( elementRow, dataRow, indexRow )
+			{
+				if(
+					dataRow['STUDENT_ACKNOWLEDGE_DATE'] !== null && dataRow['STUDENT_ACKNOWLEDGE_DATE'].length > 0 && 
+					( dataRow['SUPERVISOR_ACKNOWLEDGE_DATE'] === null || dataRow['SUPERVISOR_ACKNOWLEDGE_DATE'].length === 0 ) 
+				)
+				{
+					$( elementRow ).addClass( 'highlight' );
+				}
+			},
+			columns: [
+				{
+					data: null,
+					defaultContent: '',
+					render: function( dataCell, type, dataRow, meta )
+					{
+						const url = '';
+						if( dataRow['ACADEMIC_YEAR'] !== null && dataRow['ACADEMIC_YEAR'].length > 0 && parseInt( dataRow['ACADEMIC_YEAR'].substring( 0, 4 ) ) > 2019 )
+						{
+							<?php if( $this->isSomGenetic === true ): ?>
+							url = '/som.genetic/index/case.log.2020/id/';
+							<?php else: ?>
+							url = '/som.genetic.student/index/case.log.2020/id/';
+							<?php endif; ?>
+						}
+						else
+						{
+							<?php if( $this->isSomGenetic === true ): ?>
+							url = '/som.genetic/index/case.log/id/';
+							<?php else: ?>
+							url = '/som.genetic.student/index/case.log/id/';
+							<?php endif; ?>
+						}
+						
+						<?php if( $this->isSomGenetic === true ): ?>
+							// if student has not acknowledged the case log, or it has been rejected by supervisor
+							if( dataRow['STUDENT_ACKNOWLEDGE_DATE'] == null || dataRow['STUDENT_ACKNOWLEDGE_DATE'].length === 0 )
+							{
+								return 'Incomplete';
+							}
+							else
+							{
+								return "<a class='red' target='_blank' href='" + url + dataRow['CASELOG_IDENCRYPTED'] + "'>View</a>";
+							}
+						<?php else: ?>
+							// if student has not acknowledged the case log, or it has been rejected by supervisor
+							if( dataRow['STUDENT_ACKNOWLEDGE_DATE'] == null || dataRow['STUDENT_ACKNOWLEDGE_DATE'].length === 0 )
+							{
+								return "<a class='red' target='_blank' href='" + url + dataRow['CASELOG_IDENCRYPTED'] + "'>Edit</a>";
+							}
+							else
+							{
+								return "<a class='red' target='_blank' href='" + url + dataRow['CASELOG_IDENCRYPTED'] + "'>View</a>";
+							}
+						<?php endif; ?>
+					},
+					orderable: false
+				},
+				// student delete/admin unacknowledge buttons
+				{
+					data: null,
+					defaultContent: '',
+					createdCell: function( elementCell, dataCell, dataRow, indexRow, indexCol )
+					{
+						// student delete button
+						<?php if( $this->isSomGenetic === false ): ?>
+						if( dataRow['STUDENT_ACKNOWLEDGE_DATE'] === null || dataRow['STUDENT_ACKNOWLEDGE_DATE'].length === 0 )
+						{
+							$( elementCell ).html( "<button type='button' class='red'>Delete</button>" );
+							$( elementCell ).children( 'button' ).on( 'click', function()
+							{
+								showLoadingOverlay();
+								deleteCaseLogDependencies( dataRow ).then(
+									function()
+									{
+										return deleteCaseLog( dataRow );
+									}
+								).then(
+									function()
+									{
+										datatableCaseLog.ajax.reload(
+											function()
+											{
+												hideLoadingOverlay();
+											}
+										);
+									}
+								);
+							} );
+						}
+						// admin unacknowledge button
+						<?php elseif( in_array( 'ADMINISTRATOR', $this->typesUser ) ): ?>
+						if( dataRow['SUPERVISOR_ACKNOWLEDGE_DATE'] !== null && dataRow['SUPERVISOR_ACKNOWLEDGE_DATE'].length > 0 )
+						{
+							$( elementCell ).html( "<button type='button' class='red'>Unacknowledge</button>" );
+							$( elementCell ).children( 'button' ).on( 'click', function()
+							{
+								showLoadingOverlay();
+								deleteAcknowledgements( dataRow ).then(
+									function()
+									{
+										datatableCaseLog.ajax.reload(
+											function()
+											{
+												hideLoadingOverlay();
+											}
+										);
+									}
+								);
+							} );
+						}
+						<?php endif; ?>
+					},
+					orderable: false
+				},
+				{ 	
+					title: 'Case Log Id',
+					data: 'CASELOG_ID'
+				},
+				{ 	
+					title: 'Case Date', 
+					type: 'date',
+					data: 'ACTIVITY_DATE',
+					filterType : 'select'
+				},
+				<?php if( $this->isSomGenetic === true ): ?>
+				{ 	
+					title: 'Student',
+					data: 'NAMELAST',
+					render: function( dataCell, type, dataRow, meta )
+					{
+						return dataRow['NAMELAST'] + ', ' + dataRow['NAMEFIRST'];
+					},
+					filterType : 'select'
+				},
+				<?php endif; ?>
+				{ 	
+					title: "Ack. by Student",
+					data: null,
+					render: function(dataCell, type, dataRow, meta)
+					{
+						if( dataRow['STUDENT_ACKNOWLEDGE_DATE'] !== null && dataRow['STUDENT_ACKNOWLEDGE_DATE'].length > 0 )
+						{
+							return "Yes";
+						}
+						else
+						{
+							return "No";
+						}
+					}
+				},
+				{ 	
+					title: "Ack. by Supervisor",
+					data: null,
+					render: function(dataCell, type, dataRow, meta)
+					{
+						if( dataRow['SUPERVISOR_ACKNOWLEDGE_DATE'] !== null && dataRow['SUPERVISOR_ACKNOWLEDGE_DATE'].length > 0 )
+						{
+							return "Yes";
+						}
+						else
+						{
+							return "No";
+						}
+					}
+				},
+				{
+					title: 'Location', 
+					data: 'LOCATION_ID',
+					render: function(dataCell, type, dataRow, meta)
+					{
+						return dataRow['LOCATIONNAME']
+					},
+					filterType : 'select'
+				},
+				{
+					title: 'Supervisor',
+					data: 'SUPERVISOR_ID',
+					render: function(dataCell, type, dataRow, meta)
+					{
+						if( dataRow['SUPERVISOR_NAME_LAST'] === null )
+						{
+							return '';
+						}
+
+						return dataRow['SUPERVISOR_NAME_LAST'] + ', ' + dataRow['SUPERVISOR_NAME_FIRST'];
+					},
+					filterType : 'select'
+				},
+				{
+					title: 'Case Category',
+					data: 'CASE_CATEGORY_TYPE_NAME'
+				},
+				{
+					title: 'Encounter Types',
+					data: 'ENCOUNTER_TYPE_NAME_LIST'
+				},
+				{
+					title: 'Case Type',
+					data: 'CASE_TYPE_NAME',
+					filterType : 'select'
+				},
+				{
+					title: 'Specialty',
+					data: 'SPECIALTY_TYPE_NAME_LIST',
+					filterType : 'select'
+				},
+				<?php if( $this->isSomGenetic === true ): ?>
+				{ 	
+					title: 'Academic Year',
+					data: 'ACADEMIC_YEAR',
+					// filterType : 'select'
+				},
+				<?php endif; ?>
+			],
+			initComplete: function( settings, json )
+			{
+				resolve();
+			},
+			buttons: [],
+			language: {'search': 'Filter:'},
+			dom:'<"standard"<"header"Bfl><"body"t><"footer"ip>>',
+			<?php if( $this->isSomGenetic === true ): ?>
+				order: [[3, 'desc'],[4, 'asc']],
+			<?php else: ?>
+				order: [[3, 'desc']],
+			<?php endif; ?>
+			pageLength: 10
+		}).CrudTable('datatable');
+	})
+}).then( function()
+{
+	hideLoadingOverlay();
+});
+
+// don't allow form to refresh page
+selectAcademicYear.on( 'submit', function( ev )
+{
+	ev.preventDefault();
+});
+
+// when use changes academic year, show data for that year in datatable
+selectAcademicYear.on( 'change', function( ev )
+{
+	if( datatableCaseLog !== null )
+	{
+		showLoadingOverlay();
+		datatableCaseLog.ajax.reload( function()
+		{
+			hideLoadingOverlay();
+		});
+	}
+});
+
+// show data for default academic year
+selectAcademicYear.trigger( 'change' );
+
+<?php $this->inlineScript()->captureEnd(); ?>
+</script>
+
+
